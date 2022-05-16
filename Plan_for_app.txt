@@ -1,0 +1,28 @@
+Workflow:
+- Load data into sqlite database
+    - Start with loading CSV file
+    - consider alternative means of loading data afterwards
+- Pull contact list from sqlite database into dataframe
+- iterate over each contact to check if they still work at their current job
+    - if they do, move on
+    - if they don't, change is_valid to 0
+    - NB: this is a very simple check, and could be improved
+    - once done, return dataframe
+- load non-valid contacts from dataframe into find_and_replace class
+    - extract the email domain
+    - develop the rule for how emails are created at this company
+        - Note: this does not account for accounts with numbers in their name, this edge case is very hard to account for.
+    - Search for best possible contact for the company
+        - Note: currently searching for head of communications. Next iteration would need a way to
+        record the current position at a company and then search for that position
+    - extract name of the individual using NER
+        - Note: not perfect because of nature of NER, will sometimes not be able to extract the right name
+        and in that case, current situation is to default to a generic contact email
+        - generic contact email can easily be searched via web-scraping
+    - create email using the extracted name and the company domain with the developed email rule
+    - create new contact entry and add to new dataframe
+    - replace non-valid contacts with replaced contacts
+    - return new dataframe
+- load new dataframe into sqlite database in new table
+- compare two tables and offer to replace old contacts via API
+
