@@ -1,0 +1,14 @@
+#Notes:
+searching by email is not as efficient as I thought it was, it is returning a lot of false negatives.
+It is probably better to search by name and company instead, this appears to be more successful
+also added clause to check if link is a linkedin profile, as the title can be used to quickly check current position
+- this approach is not ideal as it relies on self-reported information, but it is better than nothing
+Also changed from google to duckduckgo
+- reasoning is twofold:
+    - Firstly, google has a more restricted allowance for automated requests, and workarounds are far too complex
+    -Secondly, google has too many ads that clog up the search results. Duckduckgo does not, and seems to be better at
+    find the most relevant results (could be because of a smaller user base and so less open to corporate exploitation)
+
+Turns of there is a limit to how many requests can be sent to duckduckgo. This means that the best approach is to use
+Async to paralelise the requests and then run app in the background
+    - This would mean that the API calls would be to load data and then retrieve changed data

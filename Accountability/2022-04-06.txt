@@ -1,0 +1,14 @@
+Completed:
+    - Webscraper works more efficiently with stopword removal
+    - Moved webservice call to reduce number of downloads, next step is speed up contact loop
+    - created list of common acronyms to double check against standard check_work (difficult to do programmatically as
+    German acronyms are created somewhat different and there would be too many exceptions)
+    - Started creation of check_contacts class to start foundation of app
+    - investigated edge-cases where simple google search not sufficient to check if contact still works at location,
+    this might mean creating a deeper loop to do further scraping to double check
+
+To be done:
+    - Reformat Check_contacts to be more efficient
+    - change columns of contact list to include a checkbox (to indicate person has left position)
+    - start experimenting with how to find replacement contact
+    - change valdition to not print, instead save as variables
