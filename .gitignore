@@ -6,9 +6,9 @@
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 # User-specific stuff
-.Model/
-.Accountability/
-.SQLiteStudio/
+Model/
+Accountability/
+SQLiteStudio/
 
 # Sensitive or high-churn files
 .idea/**/dataSources/
