@@ -1,11 +1,9 @@
 import pandas as pd
 import os
 import json
+import time
 
 pd.set_option("display.max_rows", None)
-from tqdm import tqdm
-from tqdm.notebook import tqdm as notebook_tqdm
-import time
 
 os.environ['WDM_LOG'] = '0'
 os.environ['WDM_LOG_LEVEL'] = '0'
@@ -42,7 +40,7 @@ ner = spacy.load('en_core_web_lg')
 # dataframe with the contacts from the LinkedIn website.
 # This class is used to replace the contacts in a given contact group with the contacts in a given CSV file.
 class ReplaceContacts:
-    def __init__(self):
+    def __init__(self, logging=None):
         """
         The function initializes the webdriver, sets the options for the webdriver, loads the acronyms and umlaut
         dictionaries, loads the NER model and sets the dataframe to None
@@ -51,9 +49,9 @@ class ReplaceContacts:
         self.chrome_options = Options()
         self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--log-level = 3")
-        workdir = 'D:\HSLU_Projects\Thesis'
-        if os.getcwd() != workdir:
-            os.chdir(workdir)
+        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        if os.getcwd() != basedir:
+            os.chdir(basedir)
         else:
             pass
         f = open(r'Data/common_acronyms.json')
@@ -66,6 +64,8 @@ class ReplaceContacts:
         self.ner_model = spacy.load('en_core_web_lg')
         # self.df will be loaded with the get_contacts function
         self.df = None
+        # self.logging is used to log the output of the functions
+        self.logging = logging
 
     # Load the contact dataframe from check_contacts.py into here
     def get_contacts(self, df):
@@ -79,8 +79,8 @@ class ReplaceContacts:
     # function to clean up text
     def clean_text(self, page):
         """
-        It takes a page of text, strips it of HTML tags, splits it into a list of words, removes stopwords, and returns a
-        string of the remaining words
+        It takes a page of text, strips it of HTML tags, splits it into a list of words,
+        removes stopwords, and returns a string of the remaining words
 
         :param page: the HTML page to be cleaned
         :return: A string of the cleaned text.
@@ -117,16 +117,16 @@ class ReplaceContacts:
     # function to find the correct email address format
     def create_email_rules(self, random_slice):
         """
-        This function takes a random slice of the dataframe, and then creates a list of email formats based on the first and
-        last name of the person in the slice.
+        This function takes a random slice of the dataframe, and then creates a list of email formats
+        based on the first and last name of the person in the slice.
 
-        The function then checks if the email format in the slice matches any of the email formats in the list. If it does,
-        it returns the expression that created the email format.
+        The function then checks if the email format in the slice matches any of the email formats in the list.
+         If it does,it returns the expression that created the email format.
 
         If it doesn't, it returns False.
 
-        :param random_slice: a slice of the dataframe that contains the first name, last name, and email of the person you
-        want to create a rule for
+        :param random_slice: a slice of the dataframe that contains the first name,
+        last name, and email of the person you want to create a rule for
         :return: A string that is the expression that was used to create the email.
         """
         umap = self.umap
@@ -136,20 +136,18 @@ class ReplaceContacts:
         last_name = unidecode.unidecode(last_name)
         last_name = last_name.replace("'", "")
         email = random_slice['Email']
-        print(email)
         domain = random_slice['Email'].split('@')[1]
         if len(last_name.split(' ')) > 1:
-            print(last_name.split(' ')[0], last_name.split(' ')[1])
             if last_name.split(' ')[0] in email or last_name.split(' ')[1] in email:
-                print("Email format is correct")
                 return True
             else:
-                print("Email format is incorrect")
                 return False
         if first_name not in email or last_name not in email:
-            print("This is a specific email format, double-checking...")
+            if self.logging is not None:
+                self.logging.info(f'{email} does not contain {first_name} or {last_name}, checking other formats')
             if 'mail' in email or 'info' in email:
-                print("this is the genereric info email, use this")
+                if self.logging is not None:
+                    self.logging.info("this is the generic info email, use this")
                 return email
         format1 = first_name[0] + last_name + '@' + domain
         expression1 = "first_name[0] + last_name + '@' + domain"
@@ -213,21 +211,24 @@ class ReplaceContacts:
         expression_30 = "last_name[0] + '_' + first_name[0] + '@' + domain"
         format_31 = first_name[0] + last_name[0] + '@' + domain
         expression_31 = "first_name[0] +  last_name[0] + '@' + domain"
+        format_32 = last_name + '@' + domain
+        expression_32 = "last_name + '@' + domain"
 
         format_list = [format1, format2, format_3, format_4, format_5, format_6, format_7, format_8, format_9,
                        format_10, format_11, format_12, format_13, format_14, format_15, format_16, format_17,
                        format_18, format_19, format_20, format_21, format_22, format_23, format_24, format_25,
-                       format_26, format_27, format_28, format_29, format_30, format_31]
+                       format_26, format_27, format_28, format_29, format_30, format_31, format_32]
         expression_list = [expression1, expression2, expression_3, expression_4, expression_5, expression_6,
                            expression_7, expression_8, expression_9, expression_10, expression_11, expression_12,
                            expression_13, expression_14, expression_15, expression_16, expression_17, expression_18,
                            expression_19, expression_20, expression_21, expression_22, expression_23, expression_24,
                            expression_25, expression_26, expression_27, expression_28, expression_29, expression_30,
-                           expression_31]
-        for format in format_list:
-            if format == email:
-                print(expression_list[format_list.index(format)])
-                return expression_list[format_list.index(format)]
+                           expression_31, expression_32]
+        for f in format_list:
+            if f == email:
+                if self.logging is not None:
+                    self.logging.info(f'The format of {email} is {expression_list[format_list.index(f)]}')
+                return expression_list[format_list.index(f)]
 
     # function to find new contact - currently defaulting to head of communications
     def find_new_contact(self, random_slice):
@@ -239,7 +240,7 @@ class ReplaceContacts:
         :return: The page is being returned.
         """
         driver = webdriver.Chrome(service=self.service, options=self.chrome_options)
-        driver.implicitly_wait(25)
+        driver.implicitly_wait(5)
         driver.get("https://www.google.com/")
         try:
             WebDriverWait(driver, 5).until(
@@ -254,7 +255,8 @@ class ReplaceContacts:
 
         first_page = page = driver.find_element(By.TAG_NAME, "body").text
         if "featured snippet" in first_page:
-            print("Featured snippet found, extract team from here")
+            if self.logging is not None:
+                self.logging.info(f"There is a feature snippet for {random_slice['Firma']}")
             try:
                 WebDriverWait(driver, 5).until(expected_conditions.element_to_be_clickable((By.XPATH,
                                                                                             '//*[@id="rso"]/div['
@@ -266,33 +268,34 @@ class ReplaceContacts:
                                                                                             '1]'))).click()
                 page = driver.find_element(By.TAG_NAME, "body").text
             except:
-                print("Can't find the element")
                 pass
         else:
-            print("not found, going to first link")
+            if self.logging is not None:
+                self.logging.info(f"There is no feature snippet for {random_slice['Firma']}, going to first link ")
 
             try:
                 check_for_linkedin = driver.find_element(By.XPATH, '//*[@id="rso"]/div[1]').text
-                print(check_for_linkedin)
                 if "https://ch.linkedin.com" in check_for_linkedin:
-                    print("LinkedIn found, extract info from here")
+                    if self.logging is not None:
+                        self.logging.info("LinkedIn found, extract info from here")
                     page = check_for_linkedin
                 else:
-                    print("LinkedIn not found, going to first link")
+                    if self.logging is not None:
+                        self.logging.info("LinkedIn not found, going to first link")
                     WebDriverWait(driver, 5).until(
-                        expected_conditions.element_to_be_clickable((By.XPATH,
-                                                                     '//*[@id="rso"]/div[1]/div/div[1]/div/a/h3'))).click()
+                        expected_conditions.element_to_be_clickable(
+                            (By.XPATH, '//*[@id="rso"]/div[1]/div/div[1]/div/a/h3'))).click()
                     time.sleep(5)
-                    if driver.findElement(By.XPATH, '/html/body/div[4]/div/div/div[2]/div[1]/button').size() != 0:
+                    try:
                         WebDriverWait(driver, 5).until(
-                            expected_conditions.element_to_be_clickable((By.XPATH,
-                                                                         '/html/body/div[4]/div/div/div[2]/div['
-                                                                         '1]/button'))).click()
+                            expected_conditions.element_to_be_clickable(
+                                (By.XPATH, '/html/body/div[4]/div/div/div[2]/div[1]/button'))).click()
                         page = driver.find_element(By.TAG_NAME, "body").text
-                    else:
+                    except exceptions.NoSuchElementException:
                         page = driver.find_element(By.TAG_NAME, "body").text
             except:
-                print("Can't find the element")
+                if self.logging is not None:
+                    self.logging.info("No element found")
                 pass
 
         driver.close()
@@ -315,7 +318,7 @@ class ReplaceContacts:
             list_person = person.split(" ")
             extreneous = list_person.pop(0)
             last_name = ' '.join(list_person)
-            del(extreneous)
+            del (extreneous)
         domain = random_slice['Email'].split('@')[1]
         email = eval(email_format)
         return email
@@ -328,7 +331,8 @@ class ReplaceContacts:
         :param df: the dataframe that contains the company name and the url to the company's website
         :return: Email, Vorname, Name, Firma
         """
-        print("checking for new contact for {}".format(df['Firma']))
+        if self.logging is not None:
+            self.logging.info(f"Checking for new contact at {df['Firma']} to replace {df['Vorname']} {df['Name']}")
         page = self.find_new_contact(df)
         cleaned_page = self.clean_text(page)
         person = self.contact_person(cleaned_page)
@@ -340,36 +344,48 @@ class ReplaceContacts:
         else:
             person_list = person.split(" ")
             extreneous = person_list.pop(0)
-            del(extreneous)
+            del (extreneous)
             Name = ' '.join(person_list)
         Firma = df['Firma']
-        print("the new contact for {} is {} {} with email {}".format(Firma, Vorname, Name, Email))
+        if self.logging is not None:
+            self.logging.info(f"New contact found at {Firma} to replace {Vorname} {Name}")
+            self.logging("the new contact for {} is {} {} with email {}".format(Firma, Vorname, Name, Email))
         return Name, Vorname, Email, Firma
 
     # function to iterate over all wrong contacts and replace with new contact
     def full_contact_replacement(self, df=None, debug=False):
         """
         It takes a dataframe with wrong contacts and replaces them with the correct ones
-
         :param df: the dataframe to be corrected
+        :param debug: if True, it will print the dataframes before and after the replacement,
+        defaults to False (optional)
         """
         if df is not None:
             self.get_contacts(df)
         wrong_contacts = self.df[self.df['Is_Valid'] == 0]
         corrected_contacts = wrong_contacts.copy()
-        print(wrong_contacts['Email'])
+        if self.logging is not None:
+            self.logging.info ("Starting to replace wrong contacts")
+            self.logging.info(f"There are {len(wrong_contacts)} wrong contacts")
         for idx, row in wrong_contacts.iterrows():
+            if self.logging is not None:
+                self.logging.info(f"Replacing contact at {row['Firma']}")
             Name, Vorname, Email, Firma = self.find_and_replace(df=row)
             corrected_contacts.loc[idx, 'Name'] = Name
             corrected_contacts.loc[idx, 'Vorname'] = Vorname
             corrected_contacts.loc[idx, 'Email'] = Email
             corrected_contacts.loc[idx, 'Firma'] = Firma
             corrected_contacts.loc[idx, 'Is_Valid'] = 1
-        print("{} wrong contacts replaced".format(len(corrected_contacts)))
+        if self.logging is not None:
+            self.logging("{} wrong contacts replaced".format(len(corrected_contacts)))
+            if len(wrong_contacts) == len(corrected_contacts):
+                self.logging("All wrong contacts were replaced")
+            else:
+                self.logging("Not all wrong contacts were replaced")
         if debug:
             confirmation = input("Do you want to save the new dataframe? (y/n/debug)")
             if confirmation == 'y':
-                self.df = self.df.combine_first(corrected_contacts)
+                self.df = self.df.update(corrected_contacts)
             elif confirmation == 'debug':
                 print("compare the two dataframes")
                 print(self.df)
@@ -379,7 +395,7 @@ class ReplaceContacts:
             else:
                 print("Contact replacement cancelled")
         else:
-            self.df = self.df.combine_first(corrected_contacts)
+            self.df = self.df.update(corrected_contacts)
 
     def return_df(self):
         """

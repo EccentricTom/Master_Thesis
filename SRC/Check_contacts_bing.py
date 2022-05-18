@@ -44,7 +44,7 @@ stopwords_full = stopwords_en.union(stopwords_de)
 
 # This class is used to check if a contact is in the database.
 class Check_Contacts:
-    def __init__(self, df=None):
+    def __init__(self, df=None, logging=None):
         """
         The function initializes the web scraping process by setting the working directory, loading the acronyms and setting
         the variables for the web scraping
@@ -57,9 +57,9 @@ class Check_Contacts:
         self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--log-level = 3")
         # setting the working directory
-        workdir = 'D:\HSLU_Projects\Thesis'
-        if os.getcwd() != workdir:
-            os.chdir(workdir)
+        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        if os.getcwd() != basedir:
+            os.chdir(basedir)
         else:
             pass
         # loading acronyms
@@ -67,6 +67,8 @@ class Check_Contacts:
         self.acronyms = json.load(f)
         # other variables
         self.df = df
+        # logging
+        self.logging = logging
 
     # function to show current contact list
     def get_contacts(self):
@@ -151,16 +153,6 @@ class Check_Contacts:
         else:
             return "No"
 
-    # function to load contact table
-    def load_contacts(self):
-        """
-        It connects to the database, reads the data into a dataframe, and closes the connection
-        """
-        cnx = sqlite3.connect(r"D:\HSLU_projects\Thesis\Data\Contacts.db")
-        df = pd.read_sql_query('SELECT * FROM Contacts', cnx)
-        cnx.close()
-        self.df = df
-
     # function to check the link of a email google search
     def check_employment(self, df_slice):
         """
@@ -198,7 +190,9 @@ class Check_Contacts:
                 if 'linkedin' in website_check.lower():
                     web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="r1-0"]/div[2]')
                     Top = self.clean_text(web_element)
-                    print(Top)
+                    if self.logging is not None:
+                        self.logging.info(f'Top Line: {Top}')
+                        self.logging.info("-"*50)
                     return {'Top Line': Top}
 
                 web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="r1-{i}"]/div[2]')
@@ -225,7 +219,9 @@ class Check_Contacts:
                 website_checker = driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/div[1]').text
                 if 'linkedin' in website_checker.lower():
                     web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/h2')
-                    print(Top)
+                    if self.logging is not None:
+                        self.logging.info(f'Top Line: {Top}')
+                        self.logging.info("-"*50)
                     Top = self.clean_text(web_element)
                     return {'Top Line': Top}
                 web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/h2')
@@ -243,7 +239,11 @@ class Check_Contacts:
                     pass
 
         driver.close()
-        print(Top, Bottom, Missing)
+        if self.logging is not None:
+            self.logging.info(f'Top Line: {Top}')
+            self.logging.info(f'Bottom Line: {Bottom}')
+            self.logging.info(f'Missing: {Missing}')
+            self.logging.info("-"*50)
 
         if Missing is not None and 'missing' in Missing:
             return {"Top Line": Top,
@@ -263,41 +263,45 @@ class Check_Contacts:
         """
         if self.df is None:
             self.load_contacts()
-        with tqdm(total=len(self.df.index)) as pbar:
-            for idx, row in self.df.iterrows():
-                print(f"Checking now for {row[1]} {row[0]} at {row[2]} with email {row[3]}")
-                print("-----------------------------------------------")
-                validation_online = self.check_employment(row)
-                if 'Missing' in validation_online.values() or "It looks like there aren't many great matches for" \
-                                                              "your search" in validation_online.values():
-                    print(
+        for idx, row in self.df.iterrows():
+            if self.logging is not None:
+                self.logging.info(f'Checking {row["Name"]}')(f"Checking now for {row[1]} {row[0]} at {row[2]} with email {row[3]}")
+                self.logging.info("-" * 50)
+            validation_online = self.check_employment(row)
+            if 'Missing' in validation_online.values() or "It looks like there aren't many great matches for" \
+                                                          "your search" in validation_online.values():
+                if self.logging is not None:
+                    self.logging.info(
                         f"{row['Vorname']} {row['Name']}'s' email {row['Email']} does not appear in the first search."
-                        f"They may no longer work at {row['Firma']}")
+                        f"They may no longer work at {row['Firma']} /n" + "-" * 50)
                     continue
-                check_work = find_near_matches((row[2].split()[0]).lower(),
-                                               validation_online['Top Line'].lower(),
-                                               max_l_dist=1)
-                acronym = self.acronym_checker(row["Firma"])
-                check_work_acronym = None
-                if acronym != "No":
-                    check_work_acronym = find_near_matches(acronym,
-                                                           validation_online['Top Line'],
-                                                           max_l_dist=1)
-                Firma_list = []
-                for i in validation_online.values():
-                    if i is not None:
-                        tags = self.create_tags(i)
-                        Firma_list.append(self.list_of_firma(tags))
-                l = [item for sublist in Firma_list for item in sublist]
-                check_Firma = find_near_matches((row["Firma"].split()[0]).lower(), l, max_l_dist=1)
-                if len(check_work) != 0 and check_work_acronym is not None and len(check_Firma) != 0:
-                    print(f"{row[1]} {row[0]} definitely still works at {row[2]}")
-                elif len(check_work) != 0 or check_work_acronym is not None or len(check_Firma) != 0:
-                    print(f"{row[1]} {row[0]} seems to still works at {row[2]}")
-                elif len(check_work) == 0 and check_work_acronym is None and len(check_Firma) == 0:
-                    print(f"{row[1]} {row[0]} does not work at {row[2]} anymore")
-                    self.df.loc[idx, 'Is_Valid'] = 0
-                print("-----------------------------------------------")
-                pbar.update(1)
-        print("There are {} contacts that must be updated".format(len(self.df[self.df['Is_Valid'] == 0])))
+            check_work = find_near_matches((row[2].split()[0]).lower(),
+                                           validation_online['Top Line'].lower(),
+                                           max_l_dist=1)
+            acronym = self.acronym_checker(row["Firma"])
+            check_work_acronym = None
+            if acronym != "No":
+                check_work_acronym = find_near_matches(acronym,
+                                                       validation_online['Top Line'],
+                                                       max_l_dist=1)
+            Firma_list = []
+            for i in validation_online.values():
+                if i is not None:
+                    tags = self.create_tags(i)
+                    Firma_list.append(self.list_of_firma(tags))
+            l = [item for sublist in Firma_list for item in sublist]
+            check_Firma = find_near_matches((row["Firma"].split()[0]).lower(), l, max_l_dist=1)
+            if len(check_work) != 0 and check_work_acronym is not None and len(check_Firma) != 0:
+                if self.logging is not None:
+                    self.logging.info(f"{row[1]} {row[0]} definitely still works at {row[2]}")
+            elif len(check_work) != 0 or check_work_acronym is not None or len(check_Firma) != 0:
+                if self.logging is not None:
+                    self.logging.info(f"{row[1]} {row[0]} seems to still works at {row[2]}")
+            elif len(check_work) == 0 and check_work_acronym is None and len(check_Firma) == 0:
+                if self.logging is not None:
+                    self.logging.info(f"{row[1]} {row[0]} does not work at {row[2]} anymore")
+                    self.logging.info("-" * 50)
+                self.df.loc[idx, 'Is_Valid'] = 0
+        if self.logging is not None:
+            self.logging.info("There are {} contacts that must be updated".format(len(self.df[self.df['Is_Valid'] == 0])))
         return self.df
