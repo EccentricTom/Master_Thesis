@@ -265,7 +265,7 @@ class Check_Contacts:
             self.load_contacts()
         for idx, row in self.df.iterrows():
             if self.logging is not None:
-                self.logging.info(f'Checking {row["Name"]}')(f"Checking now for {row[1]} {row[0]} at {row[2]} with email {row[3]}")
+                self.logging.info(f"Checking now for {row[1]} {row[0]} at {row[2]} with email {row[3]}")
                 self.logging.info("-" * 50)
             validation_online = self.check_employment(row)
             if 'Missing' in validation_online.values() or "It looks like there aren't many great matches for" \
