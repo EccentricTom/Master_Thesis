@@ -52,7 +52,7 @@ def check_contacts(contact_df):
             else:
                 logging.info('No invalid Contacts found')
             time.sleep(600)
-        if len(contact_df[contact_df['Is Valid'] == 0]) == 0:
+        if len(contact_df[contact_df['Is Valid'] == 0]) != 0:
             logging.info(
                 f'There are still {len(contact_df[contact_df["Is Valid"] == 0]) == 0} contacts out of date that '
                 f'could not be replaced')

@@ -295,8 +295,8 @@ class ReplaceContacts:
                         page = driver.find_element(By.TAG_NAME, "body").text
             except:
                 if self.logging is not None:
-                    self.logging.info("No element found")
-                pass
+                    self.logging.info("No element found, leaving current contact")
+                return None
 
         driver.close()
         return page
@@ -334,23 +334,28 @@ class ReplaceContacts:
         if self.logging is not None:
             self.logging.info(f"Checking for new contact at {df['Firma']} to replace {df['Vorname']} {df['Name']}")
         page = self.find_new_contact(df)
-        cleaned_page = self.clean_text(page)
-        person = self.contact_person(cleaned_page)
-        email_format = self.create_email_rules(df)
-        Email = self.create_email(df, person, email_format)
-        Vorname = person.split(" ")[0]
-        if len(person.split(" ")) == 2:
-            Name = person.split(" ")[1]
+        if page is not None:
+            cleaned_page = self.clean_text(page)
+            person = self.contact_person(cleaned_page)
+            email_format = self.create_email_rules(df)
+            Email = self.create_email(df, person, email_format)
+            Vorname = person.split(" ")[0]
+            if len(person.split(" ")) == 2:
+                Name = person.split(" ")[1]
+            else:
+                person_list = person.split(" ")
+                extreneous = person_list.pop(0)
+                del (extreneous)
+                Name = ' '.join(person_list)
+            Firma = df['Firma']
+            if self.logging is not None:
+                self.logging.info(f"New contact found at {Firma} to replace {Vorname} {Name}")
+                self.logging.info("the new contact for {} is {} {} with email {}".format(Firma, Vorname, Name, Email))
+            return Name, Vorname, Email, Firma
         else:
-            person_list = person.split(" ")
-            extreneous = person_list.pop(0)
-            del (extreneous)
-            Name = ' '.join(person_list)
-        Firma = df['Firma']
-        if self.logging is not None:
-            self.logging.info(f"New contact found at {Firma} to replace {Vorname} {Name}")
-            self.logging.info("the new contact for {} is {} {} with email {}".format(Firma, Vorname, Name, Email))
-        return Name, Vorname, Email, Firma
+            if self.logging is not None:
+                self.logging.info(f"No new contact found at {df['Firma']}")
+                return df['Name'], df['Vorname'], df['Email'], df['Firma']
 
     # function to iterate over all wrong contacts and replace with new contact
     def full_contact_replacement(self, df=None, debug=False):
@@ -371,11 +376,18 @@ class ReplaceContacts:
             if self.logging is not None:
                 self.logging.info(f"Replacing contact at {row['Firma']}")
             Name, Vorname, Email, Firma = self.find_and_replace(df=row)
-            corrected_contacts.loc[idx, 'Name'] = Name
-            corrected_contacts.loc[idx, 'Vorname'] = Vorname
-            corrected_contacts.loc[idx, 'Email'] = Email
-            corrected_contacts.loc[idx, 'Firma'] = Firma
-            corrected_contacts.loc[idx, 'Is_Valid'] = 1
+            if Name != row['Name'] or Vorname != row['Vorname'] or Email != row['Email']:
+                if self.logging is not None:
+                    self.logging.info(f"Contact at {row['Firma']} replaced")
+                corrected_contacts.loc[idx, 'Name'] = Name
+                corrected_contacts.loc[idx, 'Vorname'] = Vorname
+                corrected_contacts.loc[idx, 'Email'] = Email
+                corrected_contacts.loc[idx, 'Firma'] = Firma
+                corrected_contacts.loc[idx, 'Is_Valid'] = 1
+            else:
+                if self.logging is not None:
+                    self.logging.info(f"Contact at {row['Firma']} not replaced")
+                    pass
         if self.logging is not None:
             self.logging("{} wrong contacts replaced".format(len(corrected_contacts)))
             if len(wrong_contacts) == len(corrected_contacts):

@@ -4,6 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
       <excludeFolder url="file://$MODULE_DIR$/SRC/Notebooks/.ipynb_checkpoints" />
+      <excludeFolder url="file://$MODULE_DIR$/Model" />
+      <excludeFolder url="file://$MODULE_DIR$/SQLiteStudio" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
