@@ -9,6 +9,7 @@
 Model/
 Accountability/
 SQLiteStudio/
+Data/
 
 # Sensitive or high-churn files
 .idea/**/dataSources/
