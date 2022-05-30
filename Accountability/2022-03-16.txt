@@ -1,8 +1,0 @@
-Completed Tasks:
-- Created SQLite database for contacts
-    - Will likley need to be refactored, but currently fit for task
-- set up selenium and works
-    - next step will be to work out logic to update contacts as necessary
-
-Next steps:
-- design logic to find new contact (working on assumption that LinkedIn not possible)

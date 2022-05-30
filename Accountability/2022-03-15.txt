@@ -1,9 +1,0 @@
-Completed actions:
-- Trained an NER model that I am happy will fit it's purpose
-- Sent email to LinkedIn to request whitelisting of webscraper
-- Further improved packages and set up requirements.txt
-
-To do Tomorrow:
-- Set up SQLite to store contact list
-- Start working on Selenium webscraper
-- Do more reading around webscraping
