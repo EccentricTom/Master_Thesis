@@ -349,7 +349,7 @@ class ReplaceContacts:
         Firma = df['Firma']
         if self.logging is not None:
             self.logging.info(f"New contact found at {Firma} to replace {Vorname} {Name}")
-            self.logging("the new contact for {} is {} {} with email {}".format(Firma, Vorname, Name, Email))
+            self.logging.info("the new contact for {} is {} {} with email {}".format(Firma, Vorname, Name, Email))
         return Name, Vorname, Email, Firma
 
     # function to iterate over all wrong contacts and replace with new contact
