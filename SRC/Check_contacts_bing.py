@@ -215,29 +215,22 @@ class Check_Contacts:
                 except:
                     pass
         except exceptions.NoSuchElementException:
-            for i in range(1, 5):
-                website_checker = driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/div[1]').text
+            for i in range(0, 5):
+                website_checker = driver.find_element(by=By.XPATH, value=f'//*[@id="r1-{i}"]/div[1]/div/a').text
                 if 'linkedin' in website_checker.lower():
-                    web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/h2')
+                    web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="r1-{i}"]/div[3]/div2')
                     if self.logging is not None:
                         self.logging.info(f'Top Line: {Top}')
                         self.logging.info("-"*50)
                     Top = self.clean_text(web_element)
                     return {'Top Line': Top}
-                web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/h2')
+                web_element = driver.find_element(by=By.XPATH, value=f'//*[@id="r1-{i}"]/div[3]')
                 dirty = self.clean_text(web_element)
                 if dirty is not None:
                     if Top is not None:
                         Top += ' ' + self.cleanup(dirty)
                     else:
                         Top = self.cleanup(dirty) + ' '
-                try:
-                    dirty = self.clean_text(
-                        web_element=driver.find_element(by=By.XPATH, value=f'//*[@id="links"]/div[{i}]/div/a'))
-                    Bottom += self.cleanup(dirty)
-                except:
-                    pass
-
         driver.close()
         if self.logging is not None:
             self.logging.info(f'Top Line: {Top}')
