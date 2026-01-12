@@ -83,24 +83,50 @@ If you’re skimming for “signal”, these are the key files:
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # (Windows: .venv\Scripts\activate)
+python -m pip install --upgrade pip
 pip install -r Requirements.txt
 ```
 
 ### 2) Install SpaCy models
+Some scripts expect both English + German models:
 ``` bash
 python -m spacy download en_core_web_sm
 python -m spacy download de_core_news_lg
 ```
 
-### 3) Initialise the SQLite DB
+### 3) System Requirement: Chrome/Chromium
+Parts of the validation/replacement flow use Selenium with a headless Chrome browser.
+
+- Install Google Chrome (or Chromium) locally.
+- If you run into driver issues, see the note below on optional dependencies.
+
+### 4) Initialise the SQLite DB
 ``` bash
 python SRC/Initialise_contacts.py
 ```
 
-### 4) Run the API + background checker
+### 5) Run the API + background checker
 ``` bash
 python SRC/app.py
 ```
+---
+## Troubleshootiung / common issues
+
+### Missing Packages (webdriver_manager, fake_useragent)
+Some scripts import:
+
+- webdriver_manager (for ChromeDriver)
+- fake_useragent (to randomise the user agent)
+
+If you get import errors, install them:
+```bash
+pip install webdriver-manager fake-useragent
+```
+
+### Prototype Paths
+Some scripts contain hard-coded Windows paths (e.g., D:\HSLU_Projects\Thesis).
+You may need to adjust these to match your local environment.
+
 ---
 
 ## API Endpoints
