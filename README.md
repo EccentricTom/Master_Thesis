@@ -84,7 +84,7 @@ If you’re skimming for “signal”, these are the key files:
 python -m venv .venv
 source .venv/bin/activate   # (Windows: .venv\Scripts\activate)
 python -m pip install --upgrade pip
-pip install -r Requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 2) Install SpaCy models
